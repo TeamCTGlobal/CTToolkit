@@ -1,5 +1,3 @@
-$clientAppInsights = $null
-
 Class CTReturnObject {
     [String] $Status
     [String] $ErrorMessage
@@ -9,22 +7,6 @@ Class CTReturnObject {
     [System.Collections.ArrayList] $Output = @()
 }
 
-Function Enable-CTApplicationInsight {
-    param(
-        [Parameter(Mandatory = $true,
-            ValueFromPipelineByPropertyName = $false,
-            Position = 0)]    
-        [String] $Key
-    )
-    #TODO REMOVE in Module
-    $AssemblyPath = "C:\TFS\CT Script Repository\Prototypes\Application Insights\Microsoft.ApplicationInsights.dll"
-    [System.Reflection.Assembly]::LoadFrom($AssemblyPath)
-    
-    $script:LastActionTime = get-date    
-    $script:clientAppInsights = new-object Microsoft.ApplicationInsights.TelemetryClient
-    $script:clientAppInsights.InstrumentationKey = $Key
-
-}
 #Not in use, because of issue with $PSBoundparameters as default value
 Function Get-CTReturnObject {
     param(
@@ -116,11 +98,6 @@ Function Add-Tracelog {
     Write-Verbose $Message
     
     $script:Tracelog.Add($Message.ToString())
-
-    if ($null -ne $script:clientAppInsights) {
-        $script:clientAppInsights.TrackEvent($Message);
-        $script:clientAppInsights.Flush()
-    }
 }
 
 Function Get-TraceLog {
@@ -198,13 +175,4 @@ Function Write-CTError {
     $ErrorMessage = $CurrentError.Exception.Message + "`n $($CurrentError.InvocationInfo.PositionMessage)"
     Add-Tracelog -Message "Error in control runbook: $ErrorMessage"
     Write-Error -Message $ErrorMessage #-ErrorAction Continue #output error without stopping, for logging purposes.
-
-    if ($null -ne $script:clientAppInsights) {
-        $telemtryException = New-Object "Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry"  
-        $telemtryException.Exception = $CurrentError.Exception  
-        $script:clientAppInsights.TrackException($telemtryException) 
-        $script:clientAppInsights.Flush()
-    }
-
-    
 }
